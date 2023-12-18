@@ -1,0 +1,26 @@
+# videos
+data/
+
+__pycache__
+__pycache__/*
+.mypy_cache/
+
+.vscode
+.vscode/*
+.pytest_cache
+.pytest_cache/*
+
+.ipynb_checkpoints/
+
+# Setuptools
+*.egg-info/
+
+.coverage
+.coverage*
+.env
+
+# maybe temporary
+**/*.txt
+development/
+models/
+runs/
