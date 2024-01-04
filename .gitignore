@@ -21,6 +21,6 @@ __pycache__/*
 
 # maybe temporary
 **/*.txt
-development/
+detect/
 models/
 runs/
