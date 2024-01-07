@@ -1,4 +1,5 @@
 """Utils functions for InferencePipeline"""
+import os
 from typing import Any
 
 
@@ -49,3 +50,15 @@ def intersection(box1: list[Any], box2: list[Any]) -> float:
     x2 = min(box1_x2, box2_x2)
     y2 = min(box1_y2, box2_y2)
     return (x2 - x1) * (y2 - y1)
+
+
+def determine_filename() -> str:
+    """Determine the filename of the outputed video
+
+    Returns:
+        str: filename
+    """
+    i = 0
+    while os.path.exists(f"output_vid_{i}.mp4"):
+        i += 1
+    return f"output_vid_{i}.mp4"
