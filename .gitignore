@@ -24,3 +24,5 @@ __pycache__/*
 detect/
 models/
 runs/
+
+*.mp4

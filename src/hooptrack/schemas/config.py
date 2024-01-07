@@ -13,3 +13,5 @@ class BasketballDetectionConfig(BaseModel):
         default=["ball", "made", "rim", "shoot"], description="Classes of the model, order matters"
     )
     classes_keeped: list[str] = Field(default=["ball", "made", "rim", "shoot"], description="Classes to keep")
+
+    frame_processed_every: int = 1
