@@ -25,4 +25,7 @@ detect/
 models/
 runs/
 
+
+# model output
 *.mp4
+output_vid_*.json

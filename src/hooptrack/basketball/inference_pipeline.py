@@ -1,4 +1,5 @@
 """Implementation file of the InferencePipeline class"""
+import json
 import queue
 import threading
 from abc import ABC, abstractmethod
@@ -50,8 +51,7 @@ class InferencePipelineBasketBall(InferencePipeline):
         """Constructor"""
         self.config: BasketballDetectionConfig = config
 
-        # TODO: se renseigner sur les providers des InferenceSession
-        self.model = ort.InferenceSession(config.model, providers=["CPUExecutionProvider"])
+        self.model = ort.InferenceSession(config.model, providers=["CUDAExecutionProvider", "CPUExecutionProvider"])
         logger.info(f"{config.model} loaded in CPU.")
 
     def run(self, buffer: str | bytes) -> Any:
@@ -106,12 +106,15 @@ class InferencePipelineBasketBall(InferencePipeline):
         self.result_queue: queue.Queue = queue.Queue()
 
         # start inference thread
-        inference_thread: Any = threading.Thread(target=self._inference_worker)
+        inference_thread: Any = threading.Thread(
+            target=self._inference_worker,
+        )
         inference_thread.start()
         visualiser: Visualiser = Visualiser()
 
         if save:
             # determine path and video settings
+            bboxes: list[Any] = []
             filename: str = determine_filename()
             fourcc = cv2.VideoWriter_fourcc(*"mp4v")
             out = cv2.VideoWriter(
@@ -122,8 +125,10 @@ class InferencePipelineBasketBall(InferencePipeline):
             )
         logger.info("Source stream mode" if frame_count == 0 else "Source video mode")
         for _ in tqdm(range(frame_count)) if frame_count > 0 else iter(int, 1):
-            output_image: np.ndarray = visualiser.plot(self.result_queue.get())
+            res: Result = self.result_queue.get()
+            output_image: np.ndarray = visualiser.plot(res)
             if save:
+                bboxes.append([b.model_dump() for b in res.boxes])
                 out.write(output_image)
             if show:
                 cv2.imshow("Basketball detection", output_image)
@@ -137,7 +142,9 @@ class InferencePipelineBasketBall(InferencePipeline):
         inference_thread.join()
         if save:
             out.release()
-            logger.info(f"New video named: {filename}")
+            with open(filename.split(".")[0] + ".json", "w") as f:
+                json.dump({i: bboxes[i] for i in range(len(bboxes))}, f)
+            logger.info(f"New video named: {filename} + txt")
 
     def prepare_input(self, buffer: str | bytes | np.ndarray) -> tuple[np.ndarray, Image.Image]:
         """Prepare input by resizing and reshaping in np array
