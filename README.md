@@ -1,4 +1,7 @@
 ![Version](https://img.shields.io/badge/python-3.11-brightgreen)
+[![Coverage Status](https://coveralls.io/repos/github/MathisNcl/HoopTrack/badge.svg?branch=master)](https://coveralls.io/github/MathisNcl/HoopTrack?branch=master)
+[![Lint](https://github.com/MathisNcl/HoopTrack/actions/workflows/lint.yaml/badge.svg)](https://github.com/MathisNcl/HoopTrack/actions/workflows/lint.yaml)
+[![Lint](https://github.com/MathisNcl/HoopTrack/actions/workflows/lint.yaml/badge.svg)](https://github.com/MathisNcl/HoopTrack/actions/workflows/lint.yaml)
 ![Interrogate Status](assets/interrogate_badge.svg)
 
 # HoopTrack
