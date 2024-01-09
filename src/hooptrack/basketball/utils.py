@@ -52,13 +52,16 @@ def intersection(box1: list[Any], box2: list[Any]) -> float:
     return (x2 - x1) * (y2 - y1)
 
 
-def determine_filename() -> str:
+def determine_filename(root: str = "") -> str:
     """Determine the filename of the outputed video
+
+    Args:
+        root (str): root path. Default "".
 
     Returns:
         str: filename
     """
     i = 0
-    while os.path.exists(f"output_vid_{i}.mp4"):
+    while os.path.exists(os.path.join(root, f"output_vid_{i}.mp4")):
         i += 1
-    return f"output_vid_{i}.mp4"
+    return os.path.join(root, f"output_vid_{i}.mp4")

@@ -2,7 +2,6 @@
 import json
 import queue
 import threading
-from abc import ABC, abstractmethod
 from typing import Any
 
 import cv2
@@ -18,33 +17,9 @@ from hooptrack.schemas.config import BasketballDetectionConfig
 from hooptrack.schemas.inference import Result
 
 
-class InferencePipeline(ABC):
-    """Abstract class to follow to make an inference pipeline"""
-
-    @abstractmethod
-    def prepare_input(self, buffer: str | bytes) -> Any:
-        """Prepare input data for model"""
-        raise NotImplementedError
-
-    @abstractmethod
-    def process_output(self, output: Any, img_width: int, img_height: int) -> Any:
-        """Process output of the model"""
-        raise NotImplementedError
-
-    @abstractmethod
-    def run_model(self, input: np.ndarray) -> Any:
-        """Run the model"""
-        raise NotImplementedError
-
-    @abstractmethod
-    def run(self, buffer: str | bytes) -> Any:
-        """Run all the pipeline"""
-        raise NotImplementedError
-
-
 # @see https://dev.to/andreygermanov/how-to-create-yolov8-based-object-
 # detection-web-service-using-python-julia-nodejs-javascript-go-and-rust-4o8e#python
-class InferencePipelineBasketBall(InferencePipeline):
+class InferencePipelineBasketBall:
     """InferencePipeline for detecting basketball objects"""
 
     def __init__(self, config: BasketballDetectionConfig):
