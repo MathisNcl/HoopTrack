@@ -12,12 +12,13 @@ TODO add a gif or video
 
     hooptrack/
         docs/  # Documentation (using mkdocs-material).
-        src/  # Sources of thepackage.
-            todo/  # TODO
+        src/  # Sources of the package.
+            basketball/  # submodules for detecting the ball and the rim
+            schemas/ # submodules containing all pydantic schemas
         tests/  # Package tests.
 
 ## Getting started
 
-Get started with melusine following our (tested!) tutorials:
+Get started with HoopTrack following our (tested!) tutorials:
 
 * [Getting Started](tutorials/00_GettingStarted.md){target=_blank}

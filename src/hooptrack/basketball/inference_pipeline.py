@@ -14,7 +14,7 @@ from hooptrack import logger
 from hooptrack.basketball.utils import determine_filename, iou
 from hooptrack.basketball.visualiser import Visualiser
 from hooptrack.schemas.config import BasketballDetectionConfig
-from hooptrack.schemas.inference import Result
+from hooptrack.schemas.inference import Box, Result
 
 
 # @see https://dev.to/andreygermanov/how-to-create-yolov8-based-object-
@@ -91,7 +91,7 @@ class InferencePipelineBasketBall:
             # determine path and video settings
             bboxes: list[Any] = []
             filename: str = determine_filename()
-            fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+            fourcc = cv2.VideoWriter.fourcc(*"mp4v")
             out = cv2.VideoWriter(
                 filename,
                 fourcc,
@@ -189,10 +189,10 @@ class InferencePipelineBasketBall:
 
     def post_process(self, res: Any, img: Image.Image) -> Result:
         """Post process predictions, maybe needed later"""
-        post_processed_list: list[dict[str, Any]] = []
+        post_processed_list: list[Box] = []
 
         for box in res:
             post_processed_list.append(
-                {"bbox": [int(b) for b in box[:4]], "label_id": box[4], "label_name": box[5], "score": box[6]}
+                Box(**{"bbox": [int(b) for b in box[:4]], "label_id": box[4], "label_name": box[5], "score": box[6]})
             )
         return Result(image=img, boxes=post_processed_list)
