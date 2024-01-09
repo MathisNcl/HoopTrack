@@ -27,8 +27,7 @@ jobs:
       - name: Install Dependencies and
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-            fc-list
-
+            pip install -e .[all]
       - name: Test
         run: pytest -v --cov=src --cov-report xml
       - name: Coveralls

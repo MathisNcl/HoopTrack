@@ -110,7 +110,10 @@ class Visualiser:
             img (Image.Image): _description_
         """
         if self.font is None:
-            self.font = ImageFont.truetype(str(self.font_str), max(round(sum(img.size) / 2 * 0.035), 12))
+            try:
+                self.font = ImageFont.truetype(str(self.font_str), max(round(sum(img.size) / 2 * 0.035), 12))
+            except OSError:
+                self.font = ImageFont.load_default()
 
         if self.line_width is None:
             self.line_width = max(round(sum(img.size) / 2 * 0.003), 2)
