@@ -1,8 +1,10 @@
 """Implementation of the Tracker class"""
 from collections import defaultdict
+from copy import deepcopy
 from typing import Any, Optional
 
 import numpy as np
+import pandas as pd
 from scipy.optimize import linear_sum_assignment
 
 from hooptrack.basketball.utils import iou
@@ -25,14 +27,16 @@ class Tracker:
         self.color_importance: float = color_importance
         # key is label, value is dict of id:list of boxes
         self.tracks: dict = {}
+        self.tracks_image_id: dict = {}
         self.previous_boxes: list = []
         self.current_image: Optional[np.ndarray] = None
+        self.counter_images: int = -1
 
     def __repr__(self) -> str:
         """Representation of the object"""
         return "\n".join(
             [
-                f"Tracker(iou_importance={self.iou_importance}, " + f"color_importance={self.color_importance})",
+                f"Tracker(iou_importance={self.iou_importance}, color_importance={self.color_importance})",
                 f"Actual tracks: {self.tracks}",
             ]
         )
@@ -97,6 +101,30 @@ class Tracker:
                 labels.append(label)
         return labels, tracking_id
 
+    @staticmethod
+    def update_dict(my_dict: dict, key_str: str, default_value: Any = []) -> dict:
+        """Update the dictionnary adding two key values
+
+        Args:
+            my_dict (dict): Dict to update.
+            key_str (str): Keys to add to the dict, separated by a dot.
+            default_value (Any, optional): Value to add for the second key. Defaults to [].
+
+        Returns:
+            dict: updated dict
+        """
+        keys: list = key_str.split(".")
+        if len(keys) != 2:
+            raise ValueError("key_str should contains to element as `elm1.elm2`.")
+        k1, k2 = keys
+        updated_dict: dict = deepcopy(my_dict)
+        if k1 not in updated_dict:
+            updated_dict[k1] = {}
+        if k2 not in updated_dict[k1]:
+            updated_dict[k1][k2] = deepcopy(default_value)
+
+        return updated_dict
+
     def populate_tracks(
         self, current_boxes: list[list[int]], current_labels: list[str], selected_ids: list[str]
     ) -> None:
@@ -109,12 +137,15 @@ class Tracker:
             selected_ids (list[str]): tracking id attributed to every object in the image
         """
         for curr_box, curr_label, sel_id in zip(current_boxes, current_labels, selected_ids):
-            if curr_label not in self.tracks:
-                self.tracks[curr_label] = {}
-            if sel_id not in self.tracks[curr_label]:
-                self.tracks[curr_label][sel_id] = []
+            # add keys for tracks
+            self.tracks = self.update_dict(self.tracks, ".".join([curr_label, sel_id]))
+
+            # add keys for tracks_image_id
+            self.tracks_image_id = self.update_dict(self.tracks_image_id, ".".join([curr_label, sel_id]))
+
             # populate
             self.tracks[curr_label][sel_id].append(curr_box)
+            self.tracks_image_id[curr_label][sel_id].append(self.counter_images)
 
     def get_infos_and_set_images(self, result_predictions: Result) -> tuple[list[list[int]], list[str]]:
         """Set previous_image and current_image in the class.
@@ -130,16 +161,19 @@ class Tracker:
         self.current_image = np.array(result_predictions.image)
         return [box.bbox for box in result_predictions.boxes], [box.label_name for box in result_predictions.boxes]
 
-    def track_objects(self, result_predictions: Result, cost_threshold: float = 0.5) -> None:
+    def track_objects(self, result_predictions: Result, cost_threshold: float = 0.5) -> list[str]:
         """Track objects detected into the tracker at `tracks` variable. Main function of the class.
 
         Args:
             result_predictions (Result): Result from the model pipeline
             cost_threshold (float, optional): Max threshold to accept the cost. Defaults to 0.5.
 
+        Returns:
+            list[str]: tracked id for new object considered
         """
         labels, tracking_id = self.set_previous_boxes()
         current_boxes, current_labels = self.get_infos_and_set_images(result_predictions)
+        self.counter_images += 1
         selected_ids: list[str] = []
         if len(self.tracks) == 0:
             cumulative_counts: dict = defaultdict(int)
@@ -149,7 +183,7 @@ class Tracker:
                 cumulative_counts[lab] += 1
 
             self.populate_tracks(current_boxes, current_labels, selected_ids)
-            return
+            return selected_ids
 
         cost_matrix = self.create_cost_matrix(
             current_boxes, self.previous_boxes, self.current_image, self.previous_image
@@ -166,53 +200,37 @@ class Tracker:
                 selected_ids.append(f"{current_labels[i]}_{len(self.tracks[current_labels[i]])}")
 
         self.populate_tracks(current_boxes, current_labels, selected_ids)
+        return selected_ids
 
-    # im1 = Image.open("243.jpg")
-    # im2 = Image.open("244.jpg")
-    # create_cost_matrix(
-    #     b1,
-    #     b2,
-    #     np.array(im1),
-    #     np.array(im2),
-    # )
+    def track_to_df(self, img_height: int) -> pd.DataFrame:
+        """Get the pandas Dataframe format for the current tracks
 
-    # object_tracking(
-    #     b1,
-    #     b2,
-    #     np.array(im1),
-    #     np.array(im2),
-    # )
+        Args:
+            img_height (int): Image height used to return frame dots.
 
 
-# from hooptrack.basketball.tracker import Tracker
-# import json
-# from PIL import Image
-# from hooptrack.schemas.inference import Result
+        Returns:
+            pd.DataFrame: DataFrame format for tracks
+        """
+        df_dict: dict[str, list[Any]] = {
+            "frame_id": [],
+            "bbox": [],
+            "label_name": [],
+            "track_id": [],
+            "center_x": [],
+            "center_y": [],
+        }
+        for label, all_tracks in self.tracks.items():
+            for tracking_id, boxes in all_tracks.items():
+                for i, box in enumerate(boxes):
+                    df_dict["frame_id"].append(self.tracks_image_id[label][tracking_id][i])
+                    x1, y1, x2, y2 = box
+                    df_dict["bbox"].append(box)
+                    df_dict["center_x"].append(int((x1 + x2) / 2))
+                    df_dict["center_y"].append(img_height - int((y1 + y2) / 2))
+                    df_dict["label_name"].append(label)
+                    df_dict["track_id"].append(tracking_id)
 
-# with open("output_vid_2.json") as f:
-#     r = json.load(f)
-# tracker = Tracker(0.65, 0.35)
-# im1 = Image.open("243.jpg")
-# im2 = Image.open("244.jpg")
-# res1 = Result(
-#     **{
-#         "image": im1,
-#         "boxes": [
-#             {"bbox": [2542, 435, 2786, 687], "label_name": "rim", "label_id": 2, "score": 1},
-#             {"bbox": [2193, 1418, 2297, 1507], "label_name": "ball", "label_id": 0, "score": 1},
-#             {"bbox": [-1, 543, 96, 820], "label_name": "rim", "label_id": 2, "score": 1},
-#         ],
-#     }
-# )
-# res2 = Result(
-#     **{
-#         "image": im2,
-#         "boxes": [
-#             {"bbox": [2181, 1347, 2282, 1432], "label_name": "ball", "label_id": 0, "score": 1},
-#             {"bbox": [2543, 432, 2784, 686], "label_name": "rim", "label_id": 2, "score": 1},
-#             {"bbox": [-1, 536, 92, 819], "label_name": "rim", "label_id": 2, "score": 1},
-#         ],
-#     }
-# )
-# tracker.object_tracking(res1)
-# tracker.object_tracking(res2)
+        df = pd.DataFrame(df_dict)
+        df.sort_values("frame_id", inplace=True)
+        return df

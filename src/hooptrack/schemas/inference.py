@@ -1,6 +1,6 @@
 """Module containing schemas used in inference"""
 from PIL import Image
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class Box(BaseModel):
@@ -15,10 +15,7 @@ class Box(BaseModel):
 class Result(BaseModel):
     """Result from inference schema"""
 
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     image: Image.Image = Field(description="Original image")
     boxes: list[Box] = Field(description="List of boxes with all infos")
-
-    class Config:
-        """Result config"""
-
-        arbitrary_types_allowed = True
